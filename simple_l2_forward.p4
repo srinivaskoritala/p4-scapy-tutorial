@@ -30,6 +30,26 @@ header ipv4_t {
     ipv4Addr_t dstAddr;
 }
 
+header tcp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<32> seqNo;
+    bit<32> ackNo;
+    bit<4>  dataOffset;
+    bit<3>  reserved;
+    bit<3>  flags;
+    bit<16> window;
+    bit<16> checksum;
+    bit<16> urgentPtr;
+}
+
+header udp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> length;
+    bit<16> checksum;
+}
+
 struct metadata {
     bit<16> conntrack_id;
     bit<8>  conntrack_state;
@@ -39,6 +59,8 @@ struct metadata {
 struct headers {
     ethernet_t ethernet;
     ipv4_t     ipv4;
+    tcp_t      tcp;
+    udp_t      udp;
 }
 
 /*************************************************************************
@@ -64,6 +86,20 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            6: parse_tcp;
+            17: parse_udp;
+            default: accept;
+        }
+    }
+
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition accept;
+    }
+
+    state parse_udp {
+        packet.extract(hdr.udp);
         transition accept;
     }
 }
@@ -108,12 +144,14 @@ control MyIngress(inout headers hdr,
         meta.conntrack_found = 0;
     }
     
-    // Connection tracking table - 1000 entries
+    // Connection tracking table - 1000 entries (5-tuple format)
     table conntrack_table {
         key = {
             hdr.ipv4.srcAddr: exact;
             hdr.ipv4.dstAddr: exact;
             hdr.ipv4.protocol: exact;
+            // For TCP/UDP, use port numbers; for other protocols, use 0
+            // This is handled in the action logic
         }
         actions = {
             conntrack_lookup;
@@ -207,6 +245,12 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        if (hdr.tcp.isValid()) {
+            packet.emit(hdr.tcp);
+        }
+        if (hdr.udp.isValid()) {
+            packet.emit(hdr.udp);
+        }
     }
 }
 

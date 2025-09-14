@@ -44,6 +44,9 @@ run_demo "Advanced Multi-Protocol Demo" "advanced_scapy_demo.py"
 # Demo 4: Connection tracking with 1000-entry table
 run_demo "Connection Tracking Demo" "conntrack_scapy_demo.py"
 
+# Demo 5: 5-tuple connection tracking (proper format)
+run_demo "5-Tuple Connection Tracking Demo" "conntrack_5tuple_demo.py"
+
 echo "=========================================="
 echo "ALL DEMOS COMPLETE!"
 echo "=========================================="
@@ -53,6 +56,7 @@ echo "✓ P4 packet processing pipeline visualization"
 echo "✓ Real packet crafting with Scapy"
 echo "✓ Multi-protocol packet processing (ICMP, TCP, UDP, ARP, DHCP)"
 echo "✓ Connection tracking with 1000-entry conntrack table"
+echo "✓ 5-tuple connection tracking (src_ip:dst_ip:protocol:src_port:dst_port)"
 echo "✓ Table lookups and forwarding decisions"
 echo "✓ Packet modification and checksum recalculation"
 echo "✓ Custom protocol handling"
