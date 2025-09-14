@@ -1,0 +1,116 @@
+P4 PACKET PROCESSING PIPELINE
+================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           PACKET IN                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Ethernet Header | IPv4 Header | Payload                       │   │
+│  │  ┌─────────────┐  ┌──────────┐  ┌─────────────┐                │   │
+│  │  │ dst | src   │  │ version  │  │             │                │   │
+│  │  │ mac | mac   │  │ ihl | ttl│  │   Data      │                │   │
+│  │  │     |       │  │ ...      │  │             │                │   │
+│  │  └─────────────┘  └──────────┘  └─────────────┘                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           PARSER                                       │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  State: start → parse_ethernet → parse_ipv4 → accept           │   │
+│  │                                                                │   │
+│  │  1. Extract Ethernet header (14 bytes)                        │   │
+│  │  2. Check etherType (0x800 for IPv4)                          │   │
+│  │  3. Extract IPv4 header (20 bytes)                            │   │
+│  │  4. Populate hdr.ethernet and hdr.ipv4 structures             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    CHECKSUM VERIFICATION                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Verify packet integrity (optional in this example)            │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        INGRESS PROCESSING                              │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Tables Applied:                                                │   │
+│  │                                                                │   │
+│  │  1. MAC Forwarding Table:                                      │   │
+│  │     Key: hdr.ethernet.dstAddr                                  │   │
+│  │     Actions: forward(port), broadcast(), drop()                │   │
+│  │                                                                │   │
+│  │  2. IP Forwarding Table:                                       │   │
+│  │     Key: hdr.ipv4.dstAddr                                      │   │
+│  │     Actions: forward(port), drop()                             │   │
+│  │                                                                │   │
+│  │  Processing:                                                   │   │
+│  │  - Decrement IPv4 TTL                                          │   │
+│  │  - Apply table lookups                                         │   │
+│  │  - Set egress_spec for output port                             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        EGRESS PROCESSING                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Post-processing before packet leaves the switch               │   │
+│  │  (Empty in this example)                                       │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    CHECKSUM COMPUTATION                                │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Recalculate IPv4 header checksum after TTL modification       │   │
+│  │  using HashAlgorithm.csum16                                    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          DEPARSER                                      │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Reconstruct packet for transmission:                          │   │
+│  │  1. Emit Ethernet header                                       │   │
+│  │  2. Emit IPv4 header                                           │   │
+│  │  3. Original payload follows automatically                     │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        PACKET OUT                                      │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Modified packet sent to specified egress port                 │   │
+│  │  ┌─────────────┐  ┌──────────┐  ┌─────────────┐                │   │
+│  │  │ dst | src   │  │ version  │  │             │                │   │
+│  │  │ mac | mac   │  │ ihl |ttl-1│  │   Data      │                │   │
+│  │  │     |       │  │ ...      │  │             │                │   │
+│  │  └─────────────┘  └──────────┘  └─────────────┘                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+PACKET PATH SUMMARY:
+===================
+1. Parser: Extract headers from raw packet
+2. Verify: Check packet integrity (optional)
+3. Ingress: Apply forwarding logic and modify packet
+4. Egress: Post-process before transmission
+5. Checksum: Recalculate checksums after modifications
+6. Deparser: Reconstruct packet for output
+
+KEY CONCEPTS:
+============
+- Headers: Define packet structure and fields
+- Parser: Extract headers from raw packet data
+- Tables: Store forwarding rules and actions
+- Actions: Define what to do with packets
+- Metadata: Carry information between pipeline stages
+- Standard Metadata: Built-in switch metadata (ports, etc.)
