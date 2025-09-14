@@ -41,6 +41,9 @@ run_demo "Simple Scapy Packet Demo" "simple_scapy_demo.py"
 # Demo 3: Advanced multi-protocol packet processing
 run_demo "Advanced Multi-Protocol Demo" "advanced_scapy_demo.py"
 
+# Demo 4: Connection tracking with 1000-entry table
+run_demo "Connection Tracking Demo" "conntrack_scapy_demo.py"
+
 echo "=========================================="
 echo "ALL DEMOS COMPLETE!"
 echo "=========================================="
@@ -49,9 +52,11 @@ echo "You have seen:"
 echo "✓ P4 packet processing pipeline visualization"
 echo "✓ Real packet crafting with Scapy"
 echo "✓ Multi-protocol packet processing (ICMP, TCP, UDP, ARP, DHCP)"
+echo "✓ Connection tracking with 1000-entry conntrack table"
 echo "✓ Table lookups and forwarding decisions"
 echo "✓ Packet modification and checksum recalculation"
 echo "✓ Custom protocol handling"
+echo "✓ Connection state management and packet counting"
 echo ""
 echo "Files created:"
 echo "  - simple_l2_forward.p4          (P4 source code)"

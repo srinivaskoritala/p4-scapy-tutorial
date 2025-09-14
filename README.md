@@ -19,6 +19,7 @@ This repository contains a complete P4 programming tutorial that shows:
 ### Scapy Demos
 - `simple_scapy_demo.py` - Basic packet crafting and P4 processing simulation
 - `advanced_scapy_demo.py` - Multi-protocol packet processing (ICMP, TCP, UDP, ARP, DHCP)
+- `conntrack_scapy_demo.py` - Connection tracking with 1000-entry conntrack table
 - `scapy_packet_demo.py` - Full network interface demo (requires root)
 
 ### Visualization & Learning
@@ -58,6 +59,13 @@ Packet In → Parser → Verify → Ingress → Egress → Compute Checksum → 
 - ✅ **DHCP Discover** - Network configuration packets
 - ✅ **Custom Protocols** - User-defined protocol handling
 
+### Connection Tracking Features
+- ✅ **1000-Entry Conntrack Table** - Large-scale connection state management
+- ✅ **Connection State Tracking** - NEW, ESTABLISHED, SYN_SENT states
+- ✅ **Packet Counting** - Track packets per connection
+- ✅ **State Transitions** - Automatic state updates based on packet types
+- ✅ **Connection Lookup** - Fast hash-based connection retrieval
+
 ## 🛠 Quick Start
 
 ### Prerequisites
@@ -77,6 +85,7 @@ sudo apt-get install python3-scapy
 # Individual demos
 python3 simple_scapy_demo.py      # Basic packet processing
 python3 advanced_scapy_demo.py    # Multi-protocol demo
+python3 conntrack_scapy_demo.py   # Connection tracking demo
 python3 packet_trace_visualizer.py # Interactive visualization
 ```
 

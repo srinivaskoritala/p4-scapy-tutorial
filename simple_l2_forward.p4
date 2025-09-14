@@ -31,7 +31,9 @@ header ipv4_t {
 }
 
 struct metadata {
-    /* empty */
+    bit<16> conntrack_id;
+    bit<8>  conntrack_state;
+    bit<1>  conntrack_found;
 }
 
 struct headers {
@@ -94,6 +96,34 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = 0x1FF; // Broadcast to all ports
     }
     
+    action conntrack_lookup(bit<16> conntrack_id, bit<8> state) {
+        meta.conntrack_id = conntrack_id;
+        meta.conntrack_state = state;
+        meta.conntrack_found = 1;
+    }
+    
+    action conntrack_create(bit<16> conntrack_id, bit<8> state) {
+        meta.conntrack_id = conntrack_id;
+        meta.conntrack_state = state;
+        meta.conntrack_found = 0;
+    }
+    
+    // Connection tracking table - 1000 entries
+    table conntrack_table {
+        key = {
+            hdr.ipv4.srcAddr: exact;
+            hdr.ipv4.dstAddr: exact;
+            hdr.ipv4.protocol: exact;
+        }
+        actions = {
+            conntrack_lookup;
+            conntrack_create;
+            drop;
+        }
+        size = 1000;
+        default_action = conntrack_create(0, 0);
+    }
+    
     table mac_forwarding {
         key = {
             hdr.ethernet.dstAddr: exact;
@@ -125,6 +155,9 @@ control MyIngress(inout headers hdr,
         }
         
         if (hdr.ipv4.isValid()) {
+            // Connection tracking lookup
+            conntrack_table.apply();
+            
             // Decrement TTL
             hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
             ip_forwarding.apply();
